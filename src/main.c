@@ -219,6 +219,11 @@ int main( int argc, char *argv[] ) {
             case 'h': // --help
                 printf( "PSARc v1.0 - (c) 2023 Juan José Ponteprino (SplinterGU)\n\n" );
                 printf( "Usage: %s [options] [file]...\n", argv[0] );
+                printf( "\nExamples:\n" );
+                printf( "  %s -cf archive.pak foo bar  # Create (store) archive.pak from foo and bar.\n", argv[0] );
+                printf( "  %s -czf archive.pak foo bar # Create (zlib) archive.pak from foo and bar.\n", argv[0] );
+                printf( "  %s -lf archive.pak          # List files in archive.pak.\n", argv[0] );
+                printf( "  %s -xf archive.pak          # Extract all files from archive.pak.\n", argv[0] );
                 printf( "\nOptions:\n\n" );
                 printf( " Operation mode:\n" );
                 printf( "  -c, --create                 create an archive\n" );

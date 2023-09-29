@@ -9,6 +9,15 @@ markdown
 ./psar [options] [file]...
 ```
 
+## Examples
+
+```sh
+./psar -cf archive.pak foo bar  # Create (store) archive.pak from foo and bar.
+./psar -czf archive.pak foo bar # Create (zlib) archive.pak from foo and bar.
+./psar -lf archive.pak          # List files in archive.pak.
+./psar -xf archive.pak          # Extract all files from archive.pak.
+```
+
 ### Operation Modes:
 
 - `-c, --create` : Create an archive.
