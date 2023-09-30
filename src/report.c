@@ -373,9 +373,9 @@ static const char *report_open_file_item_unpak_verbose_mask[] = {
 
 static const char *report_file_item_list_mask[] = {
     "%s (%L bytes)\n", // STANDARD_FORMAT
-    "{\"name\":\"%s\",\"compressed\":%L}", // JSON_FORMAT
-    "files,,%s,,,,%L\n", // CSV_FORMAT
-    "<file><name>%s</name><compressed>%L</compressed></file>" // XML_FORMAT
+    "{\"name\":\"%s\",\"uncompressed\":%L}", // JSON_FORMAT
+    "files,,%s,,,%L\n", // CSV_FORMAT
+    "<file><name>%s</name><uncompressed>%L</uncompressed></file>" // XML_FORMAT
 };
 
 static const char *report_file_item_list_verbose_mask[] = {
@@ -428,7 +428,7 @@ void report_open_file_item(REPORT *report, FILEINFO *fi) {
                     } else {
                         printc(report_file_item_list_mask[idx],
                                 fi->filename,
-                                fi->compressed_size
+                                fi->uncompressed_size
                             );
                     }
                     break;
@@ -474,7 +474,7 @@ void report_open_file_item(REPORT *report, FILEINFO *fi) {
                     } else {
                         printc(report_file_item_list_mask[idx],
                                 fi->filename,
-                                fi->compressed_size
+                                fi->uncompressed_size
                             );
                     }
                     break;
