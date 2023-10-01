@@ -52,14 +52,16 @@
  *
  * This function allows for custom formatting by specifying placeholders in the format string.
  * The supported placeholders are:
- *   - '%H': Prints md5hash
- *   - '%T': Prints the compression type based on the integer argument (e.g., PSARC_STORE, PSARC_ZLIB, PSARC_LZMA).
- *   - '%M': Prints "stored" or "deflated" based on two uint64_t arguments (partial and total)(for compression).
- *   - '%m': Prints "extracting" or "inflating" based on two uint64_t arguments (partial and total)(for decompression).
- *   - '%R': Prints the compression ratio as a percentage based on two uint64_t arguments (partial and total).
- *   - '%L': Prints a uint64_t value.
- *   - '%d': Prints a int value.
- *   - '%s': Prints a char * value.
+ *   - '%H':  Prints md5hash
+ *   - '%T':  Prints the compression type based on the integer argument (e.g., PSARC_STORE, PSARC_ZLIB, PSARC_LZMA).
+ *   - '%M':  Prints "stored" or "deflated" based on two uint64_t arguments (partial and total)(for compression).
+ *   - '%m':  Prints "extracting" or "inflating" based on two uint64_t arguments (partial and total)(for decompression).
+ *   - '%R':  Prints the compression ratio as a percentage based on two uint64_t arguments (partial and total).
+ *   - '%L':  Prints a uint64_t value.
+ *   - '%d':  Prints a int value.
+ *   - '%s':  Prints a char * value.
+ *
+ * NOTE: All placeholders (except '%H') support an optional width specified as a number (e.g., %13L) to control the field width.
  *
  * @param mask      The format string containing placeholders.
  * @param ...       Additional arguments to replace the placeholders.
@@ -69,10 +71,21 @@ static void printc(const char *mask, ...) {
     va_list args;
     va_start(args, mask);
 
+    int width;
+
     char c;
     while ((c = *mask)) {
+        width = 0;
         if (c == '%') {
             c = *(++mask);
+            if (*mask >= '0' && *mask <= '9') {
+                while (*mask >= '0' && *mask <= '9') {
+                    width = width * 10 + (*mask - '0');
+                    mask++;
+                }
+                c = *(mask);
+            }
+
             switch (c) {
                 case 'H': {
                     unsigned char *hash = va_arg(args, uint8_t *);
@@ -84,19 +97,18 @@ static void printc(const char *mask, ...) {
                     int type = va_arg(args, int);
                     switch (type) {
                         case PSARC_STORE:
-                            printf("store");
+                            printf("%*s", width, "store");
                             break;
 
                         case PSARC_ZLIB:
-                            printf("zlib");
+                            printf("%*s", width, "zlib");
                             break;
 
                         case PSARC_LZMA:
-                            printf("lzma");
+                            printf("%*s", width, "lzma");
                             break;
 
                         default:
-                            printf("unknown(%d)", type);
                             break;
                     }
                     break;
@@ -105,35 +117,35 @@ static void printc(const char *mask, ...) {
                 case 'M': {
                     uint64_t partial = va_arg(args, uint64_t);
                     uint64_t total = va_arg(args, uint64_t);
-                    printf("%s", total == partial ? "stored" : "deflated");
+                    printf("%*s", width, total == partial ? "stored" : "deflated");
                     break;
                 }
     
                 case 'm': {
                     uint64_t partial = va_arg(args, uint64_t);
                     uint64_t total = va_arg(args, uint64_t);
-                    printf("%s", total == partial ? "extracting" : "inflating");
+                    printf("%*s", width, total == partial ? "extracting" : "inflating");
                     break;
                 }
     
                 case 'R': {
                     double value = va_arg(args, double);
-                    printf("%.02f", isnan(value) ? 0 : 100.0f - value * 100.0f);
+                    printf("%*.02f", width, isnan(value) ? 0 : 100.0f - value * 100.0f);
                     break;
                 }
 
                 case 'L': {
-                    printf("%"PRId64, va_arg(args, uint64_t));
+                    printf("%*"PRId64, width, va_arg(args, uint64_t));
                     break;
                 }
 
                 case 'd': {
-                    printf("%d", va_arg(args, int));
+                    printf("%*d", width, va_arg(args, int));
                     break;
                 }
 
                 case 's': {
-                    printf("%s", va_arg(args, char *));
+                    printf("%*s", width, va_arg(args, char *));
                     break;
                 }
 
@@ -296,6 +308,17 @@ void report_open_file_section(REPORT *report) {
         default:
             break;
 
+        case STANDARD_FORMAT:
+            if (report->type == REPORT_TYPE_LIST ) {
+                if ( _Config.verbose_flag )
+                    printf("   Compressed  Uncompressed   Method Saving Name digest                      Name\n" \
+                           "------------- ------------- -------- ------ -------------------------------- ------------------------\n");
+                else
+                    printf(" Uncompressed Name\n" \
+                           "------------- ------------------------\n");
+            }
+            break;
+
         case JSON_FORMAT:
             // In JSON format, open a list of files.
             printf(",\"files\":[");
@@ -324,6 +347,15 @@ void report_close_file_section(REPORT *report) {
 
     switch ( _Config.output_format ) {
         default:
+            break;
+
+        case STANDARD_FORMAT:
+            if (report->type == REPORT_TYPE_LIST ) {
+                if ( _Config.verbose_flag )
+                    printf("------------- ------------- -------- ------ -------------------------------- ------------------------\n");
+                else
+                    printf("------------- ------------------------\n");
+            }
             break;
 
         case JSON_FORMAT:
@@ -372,14 +404,14 @@ static const char *report_open_file_item_unpak_verbose_mask[] = {
 };
 
 static const char *report_file_item_list_mask[] = {
-    "%s (%L bytes)\n", // STANDARD_FORMAT
+    "%13L %s\n", // STANDARD_FORMAT
     "{\"name\":\"%s\",\"uncompressed\":%L}", // JSON_FORMAT
     "files,,%s,,,%L\n", // CSV_FORMAT
     "<file><name>%s</name><uncompressed>%L</uncompressed></file>" // XML_FORMAT
 };
 
 static const char *report_file_item_list_verbose_mask[] = {
-    "%H %s (%L/%L bytes) (%M %R%%)\n", // STANDARD_FORMAT
+    "%13L %13L %8M %5R%% %H %s\n", // STANDARD_FORMAT
     "{\"name\":\"%s\",\"name_digest\":\"%H\",\"compression_method\":\"%M\",\"uncompressed\":%L,\"compressed\":%L,\"savings\":%R}", // JSON_FORMAT
     "files,,%s,%H,%M,%L,%L,%R\n", // CSV_FORMAT
     "<file><name>%s</name><name_digest>%H</name_digest><compression_method>%M</compression_method><uncompressed>%L</uncompressed><compressed>%L</compressed><savings>%R</savings></file>" // XML_FORMAT
@@ -418,17 +450,17 @@ void report_open_file_item(REPORT *report, FILEINFO *fi) {
                 case    REPORT_TYPE_LIST:
                     if ( _Config.verbose_flag ) {
                         printc(report_file_item_list_verbose_mask[idx],
-                                fi->name_digest,
-                                fi->filename,
                                 fi->compressed_size,
                                 fi->uncompressed_size,
                                 fi->uncompressed_size, fi->compressed_size,
-                                (double) fi->compressed_size / fi->uncompressed_size
+                                (double) fi->compressed_size / fi->uncompressed_size,
+                                fi->name_digest,
+                                fi->filename
                             );
                     } else {
                         printc(report_file_item_list_mask[idx],
-                                fi->filename,
-                                fi->uncompressed_size
+                                fi->uncompressed_size,
+                                fi->filename
                             );
                     }
                     break;
@@ -658,17 +690,17 @@ void report_file_item(REPORT *report, FILEINFO *fi, uint64_t uncompressed_size, 
                 case    REPORT_TYPE_LIST:
                     if ( _Config.verbose_flag ) {
                         printc(report_file_item_list_verbose_mask[idx],
-                                fi->name_digest,
-                                fi->filename,
                                 fi->compressed_size,
                                 fi->uncompressed_size,
                                 fi->uncompressed_size, fi->compressed_size,
-                                (double) fi->compressed_size / fi->uncompressed_size
+                                (double) fi->compressed_size / fi->uncompressed_size,
+                                fi->name_digest,
+                                fi->filename
                             );
                     } else {
                         printc(report_file_item_list_mask[idx],
-                                fi->filename,
-                                fi->compressed_size
+                                fi->uncompressed_size,
+                                fi->filename
                             );
                     }
                     break;
@@ -728,7 +760,7 @@ void report_file_item(REPORT *report, FILEINFO *fi, uint64_t uncompressed_size, 
                     } else {
                         printc(report_file_item_list_mask[idx],
                                 fi->filename,
-                                fi->compressed_size
+                                fi->uncompressed_size
                             );
                     }
                     break;

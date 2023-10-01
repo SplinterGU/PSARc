@@ -510,8 +510,7 @@ static void list_archive_files(FILEINFO *files_info_table, uint32_t *blocktable)
     report_open_file_section(report);
     for (uint32_t i = 1; i < _ArchiveInfo.toc_entries; i++) {
         files_info_table[i].compressed_size = get_compressed_size(&files_info_table[i], blocktable);
-        report_open_file_item(report, &files_info_table[i]);
-        report_close_file_item(report, 0, 0, NULL, i < _ArchiveInfo.toc_entries - 1);
+        report_file_item(report, &files_info_table[i], 0, 0, NULL, i < _ArchiveInfo.toc_entries - 1);
     }
     report_close_file_section(report);
 }
