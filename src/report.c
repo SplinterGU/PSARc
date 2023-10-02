@@ -311,7 +311,7 @@ void report_open_file_section(REPORT *report) {
         case STANDARD_FORMAT:
             if (report->type == REPORT_TYPE_LIST ) {
                 if ( _Config.verbose_flag )
-                    printf("   Compressed  Uncompressed   Method Saving Name digest                      Name\n" \
+                    printf("   Compressed  Uncompressed   Method Saving Hash of name                     Name\n" \
                            "------------- ------------- -------- ------ -------------------------------- ------------------------\n");
                 else
                     printf(" Uncompressed Name\n" \

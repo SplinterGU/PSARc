@@ -283,7 +283,7 @@ int main( int argc, char *argv[] ) {
 
             case 'V': // --version
                 // Display program version
-                printf( "psar (PSARc) 1.0\n" );
+                printf( "psar (PSARc) "VERSION"\n" );
                 printf( "Copyright (C) 2023 Juan José Ponteprino (SplinterGU)\n" );
                 printf( "License MIT: MIT License <https://opensource.org/licenses/MIT>.\n" );
                 printf( "This is open-source software: you are free to change and redistribute it.\n" );
