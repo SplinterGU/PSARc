@@ -56,9 +56,6 @@
 
 #include "file_utils.h"
 
-#include <stdio.h>
-#include <string.h>
-
 #ifdef _WIN32
 typedef struct {
     char pattern[PATH_MAX];
@@ -115,22 +112,19 @@ char *realpath(const char* path, char *resolved_path) {
  */
 
 char *path_to_unix(const char* path, char *converted_path) {
+    if (!path && !converted_path) return NULL;
+
     if (!converted_path) {
         converted_path = strdup(path);
         if (!converted_path) {
             return NULL; // Memory allocation error
         }
-    }
-
-    char *p;
-
-    // Remove drive letter prefix
-    if ((p = strchr(converted_path, ':'))) {
-        strcpy(converted_path, p + 1);
+    } else {
+        if ( path && path != converted_path ) strcpy(converted_path, path);
     }
 
     // Replace backslashes with forward slashes
-    p = converted_path;
+    char *p = converted_path;
     while ((p = strchr(p, '\\'))) {
         *p = '/';
         p++;
@@ -176,7 +170,15 @@ int mkpath(const char *path, mode_t mode) {
     char *q, *r;
     int rv = -1;
 
-    if (strcmp(path, ".") == 0 || strcmp(path, "/") == 0) return 0;
+    if ( !path[0]
+        || strcmp(path, ".") == 0
+        || strcmp(path, "/") == 0 
+#ifdef _WIN32
+        || ( strlen(path) == 2 && path[1] == ':' ) 
+        || ( strlen(path) > 2 && strcmp(path + strlen(path) - 2, ":.") == 0 ) 
+        || ( strlen(path) > 2 && ( strcmp(path + strlen(path) - 2, ":/") == 0 ) || strcmp(path + strlen(path) - 2, ":\\") == 0 ) 
+#endif
+        ) return 0;
 
     if (!(q = strdup(path))) return -1;
 
@@ -190,14 +192,11 @@ int mkpath(const char *path, mode_t mode) {
         return -1;
     }
 
-//#ifdef _WIN32
-//    if ((mkdir(path) == -1) && (errno != EEXIST))
-//#else
-    if ((mkdir(path, mode) == -1) && (errno != EEXIST))
-//#endif
+    if ((mkdir(path, mode) == -1) && (errno != EEXIST)) {
         rv = -1;
-    else
+    } else {
         rv = 0;
+    }
 
     free(q);
 
@@ -355,7 +354,6 @@ void filelist_init(FILELIST *list, size_t initialCapacity, size_t hashSize) {
 
 int filelist_add(FILELIST *list, char *filename) {
     char *canonicalPath = realpath(filename, NULL);
-
     if (canonicalPath == NULL) {
         // Error in obtaining the canonical path, return 0
         return 0;
@@ -385,7 +383,6 @@ int filelist_add(FILELIST *list, char *filename) {
         free(canonicalPath);
     }
     list->count++;
-
     return 1; // Indicates that the file was added
 }
 
@@ -626,7 +623,8 @@ static void process_directory_pattern(FILELIST *filelist, FRAGMENT_PATH *fragmen
 
 int process_pattern(char *pattern, FILELIST *filelist, uint16_t flags) {
 #ifdef _WIN32
-    int include_first_slash = *pattern == '/' || *pattern == '\\';
+    int include_first_slash = ( *pattern == '/' || *pattern == '\\' )
+                              && !( strlen(pattern) > 2 && ( !strncmp(&pattern[1],":/",2) || !strncmp(&pattern[1],":\\",2) ) ) ;
     char *fragment = strtok((char *)pattern, "/\\");
 
     int num_fragment_paths = 0;
@@ -636,7 +634,6 @@ int process_pattern(char *pattern, FILELIST *filelist, uint16_t flags) {
 
     int error = 0;
     int part = 0;
-
     while (fragment) {
         int is_drive = 0;
 

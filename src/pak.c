@@ -575,37 +575,40 @@ int create_archive(char *output_path, char **files, size_t num_files ) {
     size_t filenames_len = 0;
 
     for ( int i = 0; i < _ArchiveInfo.toc_entries; i++ ) {
-        char *p = files[i], *px;
+        char *fname;
+#ifdef __WIN32
+        fname = path_to_unix(NULL, files[i]);
+#else
+        fname = files[i];
+#endif
+
+        char *px;
+
         size_t len;
 
         if ( _Config.trim_path_flag ) {
-            px = strrchr( p, '/' );
-            if ( px ) {
-                p = ++px;
-            }
+            px = strrchr( fname, '/' );
+            if ( px ) fname = ++px;
         }
 
 #ifdef __WIN32
         // Remove Drive:
-        if (( px = strchr( p, ':' ))) {
-            p = ++px;
-#endif
-            len = strlen(p);
-            if ( _ArchiveInfo.archive_flags & AF_ABSPATH ) {
-                // Add 1 to len for begin if not '/'
-                if ( *p != '/' ) len++;
-            } else {
-                // Remove '/' from begin
-                while ( *p == '/' ) {
-                    p++;
-                    len--;
-                }
-            }
-#ifdef __WIN32
-        } else {
-            len = strlen(p);
+        if (( px = strchr( fname, ':' ))) {
+            fname = ++px;
         }
 #endif
+        len = strlen(fname);
+        if ( _ArchiveInfo.archive_flags & AF_ABSPATH ) {
+            // Add 1 to len for begin if not '/'
+            if ( *fname != '/' ) len++;
+        } else {
+            // Remove '/' from begin
+            while ( *fname == '/' ) {
+                fname++;
+                len--;
+            }
+        }
+
         filenames_len += len + ( ( i < _ArchiveInfo.toc_entries - 1 ) ? 1 : 0 );
     }
 
@@ -621,26 +624,20 @@ int create_archive(char *output_path, char **files, size_t num_files ) {
     *filenames = '\0';
     
     for ( int i = 0; i < _ArchiveInfo.toc_entries; i++ ) {
-        char *fname;
-#ifdef __WIN32
-        char *pfname;
-        pfname = fname = path_to_unix(files[i], NULL);
-        if ( !fname ) {
-            fprintf( stderr, APPNAME": not enough memory\n" );
+        char *fname = files[i];
 
-            free(filenames);
-            free(files_info_table);
-            free(target_buffer);
-            free(source_buffer);
-            return 1;
+        char *px;
+
+#ifdef __WIN32
+        // Remove Drive:
+        if (( px = strchr( fname, ':' ))) {
+            fname = ++px;
         }
-#else
-        fname = files[i];
 #endif
 
         if ( _Config.trim_path_flag ) {
-            char * px = strrchr( fname, '/' );
-            if ( px ) fname = px;
+            px = strrchr( fname, '/' );
+            if ( px ) fname = ++px;
         }
 
         if ( _ArchiveInfo.archive_flags & AF_ABSPATH ) {
@@ -652,12 +649,9 @@ int create_archive(char *output_path, char **files, size_t num_files ) {
         }
 
         strcat(filenames, fname);
-#ifdef __WIN32
-        free(pfname);
-#endif
+
         if ( i < _ArchiveInfo.toc_entries - 1 ) strcat(filenames, "\x0a" );
     }
-
     // First block for files
     uint32_t blocktable_size = ( filenames_len + _ArchiveInfo.block_size - 1 ) / _ArchiveInfo.block_size;
     files_info_table[0].uncompressed_size = filenames_len;
@@ -675,7 +669,7 @@ int create_archive(char *output_path, char **files, size_t num_files ) {
     blocktable_size += bsize;
 
     // Allocate the compressed sizes array
-    uint32_t *blocktable = malloc((blocktable_size) * sizeof(uint32_t));
+    uint32_t *blocktable = malloc(blocktable_size * sizeof(uint32_t));
     if (!blocktable) {
         fprintf( stderr, APPNAME": not enough memory\n" );
 

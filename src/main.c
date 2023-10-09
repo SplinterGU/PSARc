@@ -124,6 +124,9 @@ int main( int argc, char *argv[] ) {
 
             case 'f':
                 _Config.archive_file = archive_file = optarg; // Set the file path
+#ifdef _WIN32
+                path_to_unix(NULL,_Config.archive_file);
+#endif
                 break;
 
             case 'b':
@@ -168,10 +171,16 @@ int main( int argc, char *argv[] ) {
 
             case 's':
                 _Config.source_dir = optarg; // Source directory
+#ifdef _WIN32
+                path_to_unix(NULL,_Config.source_dir);
+#endif
                 break;
 
             case 't':
                 _Config.target_dir = optarg; // Target directory
+#ifdef _WIN32
+                path_to_unix(NULL,_Config.target_dir);
+#endif
                 break;
 
             case 'r':

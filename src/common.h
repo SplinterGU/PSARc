@@ -40,7 +40,7 @@
 #include <stddef.h>
 
 #define APPNAME     "psar"
-#define VERSION     "v1.0.4"
+#define VERSION     "v1.0.5"
 
 // Define an enum for format values
 enum FORMAT_VALUE_ENUM {
